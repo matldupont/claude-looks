@@ -62,7 +62,7 @@ const rain = picture(p => {
   const gu = 1 - (u0 - 0.14) / 0.72 // mirrored, as in the film
   const gv = (v - 0.12) / 0.76
   const inside = step(0, gu) * step(gu, 1) * step(0, gv) * step(gv, 1)
-  const w = 0.13
+  const w = 0.08
   const g1 = hash(gid)
   const g2 = hash(int(gid + 1))
   const g3 = hash(int(gid + 2))
