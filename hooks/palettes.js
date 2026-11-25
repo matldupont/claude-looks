@@ -58,6 +58,65 @@ export const PALETTES = {
       codeTheme: { dark: 'nord' },
     },
   },
+  predator: {
+    scene: 'predator',
+    glass: { blur: 8, tint: '#07050e', opacity: 0.6 },
+    style: {
+      // The person is the prey: warm, thermal. Claude is the hunter: cold, with the
+      // cannon's three red dots in the corner of each reply.
+      UserMessage: {
+        color: '#fff1e0',
+        backgroundColor: '#2a0c10',
+        fill: { gradient: { shape: 'radial', stops: ['#5c1c08', '#3a0c12', '#1c0818'] } },
+        borderColor: '#ff6a00',
+        borderWidth: 1,
+        radius: 3,
+      },
+      AssistantMessage: {
+        color: '#e6ecff',
+        backgroundColor: '#0a0e22',
+        paddingTop: 20,
+        paddingX: 14,
+        paddingBottom: 12,
+        fill: {
+          vector: {
+            viewBox: 96,
+            slice: 26,
+            paths: [
+              { d: 'M0 6L6 0H96V90L90 96H0Z', color: '#0a0e22' },
+              { d: 'M0.5 6.5L6.5 0.5H95.5V89.5L89.5 95.5H0.5Z', strokeWidth: 1, color: '#26336e' },
+              { d: 'M8.2 9a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0ZM15.2 9a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0ZM11.7 14.6a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0Z', color: '#ff2a1a' },
+            ],
+          },
+        },
+      },
+      ToolUse: { color: '#ffb070', fontFamily: ['mono'], backgroundColor: '#120812', borderColor: '#4a1c1c', borderWidth: 1, radius: 2, paddingX: 8 },
+    },
+    sound: {
+      ambience: {
+        reverb: 0.35,
+        layers: [
+          { wave: 'brown', drone: true, gain: 0.16, filter: { type: 'lowpass', hz: 180 }, tremolo: { hz: 0.07, depth: 0.4 } },
+          { wave: 'pink', drone: true, gain: 0.06, filter: { type: 'bandpass', hz: 2600, to: 3400 }, tremolo: { hz: 0.4, depth: 0.5 } },
+          { wave: 'crackle', scatter: 3, gain: 0.07, pan: -0.4, filter: { type: 'highpass', hz: 3000 } },
+          { wave: 'crackle', scatter: 2, gain: 0.06, pan: 0.5, filter: { type: 'highpass', hz: 3500 } },
+          // The hunter's clicking call, now and then, from somewhere off to one side.
+          { wave: 'square', scatter: 0.05, notes: [70, 70, 70, 70, 70, 70], step: 0.055, attack: 0.002, release: 0.03, gain: 0.08, pan: 0.6, filter: { type: 'bandpass', hz: 900 } },
+        ],
+      },
+      cues: {
+        send: { layers: [{ wave: 'square', notes: [160, 160, 160], step: 0.05, attack: 0.002, release: 0.03, gain: 0.12, filter: { type: 'bandpass', hz: 1400 } }] },
+        tool: { layers: [{ wave: 'square', notes: [190], attack: 0.002, release: 0.03, gain: 0.08, filter: { type: 'bandpass', hz: 1600 } }] },
+        done: { reverb: 0.3, layers: [{ wave: 'triangle', notes: ['A4', 'E4', 'A3'], step: 0.12, release: 0.5, gain: 0.14 }] },
+        error: { layers: [{ wave: 'saw', notes: [110], glide: -12, release: 0.6, gain: 0.1, filter: { type: 'lowpass', hz: 800 } }] },
+      },
+    },
+    colors: {
+      label: 'Predator',
+      roles: { accent: '#ff6a00', danger: '#ff2433', success: '#a6f03c', warning: '#ffd23a', pro: '#c44dff' },
+      dark: dark('#07050e', '#0d0a1a', '#130f24', '#161128', '#fff1e0', '#f2c9a0', '#c99a7a'),
+    },
+  },
   midnight: {
     colors: {
       label: 'Midnight',

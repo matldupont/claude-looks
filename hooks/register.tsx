@@ -4,6 +4,7 @@ import { makeColors } from './make-colors.js'
 import { PALETTES } from './palettes.js'
 import { MATRIX } from './matrix.js'
 import { TOKYO } from './tokyo.js'
+import { PREDATOR } from './predator.js'
 
 const NAMES = Object.keys(PALETTES)
 
@@ -69,6 +70,7 @@ const SCENES: Record<string, { source: string; alt: string }> = {
   synthwave: { source: SYNTHWAVE, alt: 'A synthwave sun over a neon grid' },
   matrix: { source: MATRIX, alt: 'Green digital rain falling on black' },
   tokyo: { source: TOKYO, alt: 'Rain falling on a neon-lit Tokyo street at night' },
+  predator: { source: PREDATOR, alt: 'A night jungle in thermal vision, with a hunter’s glyph readout and wrist countdown' },
 }
 
 export const register: Register = on => {
@@ -148,6 +150,14 @@ export const register: Register = on => {
     if (e.props.scene === 'matrix') {
       return (
         <Shader module="./matrix.shader.ts">
+          <Svg source={scene.source} alt={scene.alt} />
+        </Shader>
+      )
+    }
+
+    if (e.props.scene === 'predator') {
+      return (
+        <Shader module="./predator.shader.ts">
           <Svg source={scene.source} alt={scene.alt} />
         </Shader>
       )
