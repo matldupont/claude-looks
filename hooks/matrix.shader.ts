@@ -1,5 +1,6 @@
 // Digital rain on the GPU: a grid of cells, each column a falling head with a fading
 // trail, each cell a procedurally drawn katakana-like glyph that keeps changing.
+// Cheap on purpose: four hashes a pixel, each sliced into bytes for its random numbers.
 import {
   abs,
   clamp,
@@ -25,7 +26,8 @@ import {
 const CW = 11 // cell width, points
 const CH = 16 // cell height, points
 
-const hash = (n: int): number => {
+// A 32-bit scramble. Its four bytes each make one random number.
+const mix = (n: int): int => {
   let x = n
   x = int(x ^ (x >>> 16))
   x = int(x * 73244475)
@@ -33,28 +35,38 @@ const hash = (n: int): number => {
   x = int(x * 73244475)
   x = int(x ^ (x >>> 16))
 
-  return unsigned(x) / 4294967296
+  return x
 }
+
+// A byte (0 to 255) as a number from 0 to 1.
+const unit = (v: int): number => unsigned(v) * 0.003921569
 
 const rain = picture(p => {
   const fy = size.y - p.point.y
   const col = floor(p.point.x / CW)
   const row = floor(fy / CH)
   const c = int(col)
+  const r = int(row)
   const rows = size.y / CH
 
   // Per column: speed, trail length and where its head is now.
-  const speed = 8 + 14 * hash(c)
-  const trail = 14 + 32 * hash(int(c + 1013))
-  const period = rows + trail + 4 + 14 * hash(int(c + 7919))
-  const head = mod(time * speed + hash(int(c + 31337)) * 1000, period)
-  const d = head - row
+  const hc = mix(int(c + 1013))
+  const speed = 8 + 14 * unit(int(hc & 255))
+  const trail = 14 + 32 * unit(int((hc >>> 8) & 255))
+  const period = rows + trail + 4 + 14 * unit(int((hc >>> 16) & 255))
+  // Rain starts from nothing: each column waits its turn (up to 3s), then its head
+  // enters from the top. `time` counts from when the shader is ready.
+  const wait = unit(int((hc >>> 24) & 255)) * 3
+  const t = max(time - wait, 0)
+  const head = mod(t * speed, period)
+  const d = head - row - 1000 * step(time, wait)
 
-  // Each cell swaps its glyph every few tenths of a second.
-  const r = int(row)
-  const rate = 0.25 + 0.7 * hash(int(c * 7919 + r * 104729))
-  const k = int(floor(time * rate + hash(int(c * 31 + r * 17)) * 10))
-  const gid = int(c * 7919 + r * 104729 + k * 613)
+  // Each cell swaps its glyph every few seconds.
+  const hr = mix(int(c * 7919 + r * 104729))
+  const rate = 0.25 + 0.7 * unit(int(hr & 255))
+  const k = int(floor(time * rate + unit(int((hr >>> 8) & 255)) * 10))
+  const ga = mix(int(c * 7919 + r * 104729 + k * 613))
+  const gb = mix(int(ga + 1))
 
   // A glyph is a few strokes: a bar across, a bar down, a slash, a second bar.
   const u0 = fract(p.point.x / CW)
@@ -63,15 +75,15 @@ const rain = picture(p => {
   const gv = (v - 0.12) / 0.76
   const inside = step(0, gu) * step(gu, 1) * step(0, gv) * step(gv, 1)
   const w = 0.08
-  const g1 = hash(gid)
-  const g2 = hash(int(gid + 1))
-  const g3 = hash(int(gid + 2))
-  const g4 = hash(int(gid + 3))
-  const g5 = hash(int(gid + 4))
-  const g6 = hash(int(gid + 5))
-  const g7 = hash(int(gid + 6))
-  const g8 = hash(int(gid + 7))
-  const g9 = hash(int(gid + 8))
+  const g1 = unit(int(ga & 255))
+  const g2 = unit(int((ga >>> 8) & 255))
+  const g3 = unit(int((ga >>> 16) & 255))
+  const g4 = unit(int((ga >>> 24) & 255))
+  const g5 = unit(int(gb & 255))
+  const g6 = unit(int((gb >>> 8) & 255))
+  const g7 = unit(int((gb >>> 16) & 255))
+  const g8 = unit(int((gb >>> 24) & 255))
+  const g9 = unit(int((hr >>> 16) & 255))
 
   const bar1 = step(abs(gv - (0.1 + 0.8 * g1)), w) * step(0.35 * g2, gu) * step(gu, 0.65 + 0.35 * g3)
   const bar2 = step(abs(gu - (0.2 + 0.6 * g4)), w) * step(0.3 * g5, gv) * step(gv, 0.7 + 0.3 * g6)
@@ -106,7 +118,7 @@ const rain = picture(p => {
   const a = ink * on
 
   // A faint dim ghost of the grid in the dark, so the field never looks empty.
-  const ghost = ink * 0.05 * step(0.8, hash(int(gid + 99)))
+  const ghost = ink * 0.05 * step(0.8, unit(int((hr >>> 24) & 255))) * smoothstep(0, 3, time)
 
   const around = length(p.uv - 0.5)
   const vig = 1 - 0.7 * smoothstep(0.35, 0.85, around)
