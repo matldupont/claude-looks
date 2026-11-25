@@ -54,9 +54,9 @@ const rain = picture(p => {
   const speed = 8 + 14 * unit(int(hc & 255))
   const trail = 14 + 32 * unit(int((hc >>> 8) & 255))
   const period = rows + trail + 4 + 14 * unit(int((hc >>> 16) & 255))
-  // Rain starts from nothing: each column waits its turn (up to 3s), then its head
+  // Rain starts from nothing: each column waits its turn (up to 0.7s), then its head
   // enters from the top. `time` counts from when the shader is ready.
-  const wait = unit(int((hc >>> 24) & 255)) * 3
+  const wait = unit(int((hc >>> 24) & 255)) * 0.7
   const t = max(time - wait, 0)
   const head = mod(t * speed, period)
   const d = head - row - 1000 * step(time, wait)
@@ -118,7 +118,7 @@ const rain = picture(p => {
   const a = ink * on
 
   // A faint dim ghost of the grid in the dark, so the field never looks empty.
-  const ghost = ink * 0.05 * step(0.8, unit(int((hr >>> 24) & 255))) * smoothstep(0, 3, time)
+  const ghost = ink * 0.05 * step(0.8, unit(int((hr >>> 24) & 255))) * smoothstep(0, 1, time)
 
   const around = length(p.uv - 0.5)
   const vig = 1 - 0.7 * smoothstep(0.35, 0.85, around)
