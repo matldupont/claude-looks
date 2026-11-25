@@ -121,7 +121,7 @@ const rain = picture(p => {
   const around = length(p.uv - 0.5)
   const vig = 1 - 0.7 * smoothstep(0.35, 0.85, around)
   const bg = vec3(0, 0.04, 0.016)
-  const lum = (rgb * a + vec3(0, 1, 0.4) * ghost) * vig * smoothstep(0, 1.2, time)
+  const lum = (rgb * a + vec3(0, 1, 0.4) * ghost) * vig * smoothstep(0, 0.5, time)
 
   return vec4(bg * vig + lum, 1)
 })
