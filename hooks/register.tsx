@@ -90,10 +90,16 @@ export const register: Register = on => {
     if (typeof saved === 'string' && NAMES.includes(saved)) {
       current = saved
     }
-    const set = await $.theme.set(build(current))
+    // A desktop surface may attach after the session starts: the hook below sets the
+    // theme again then, so an early refusal here is not worth showing.
+    await $.theme.set(build(current))
 
-    if (!set.isDrawn) {
-      $.ui.status(`Theme not drawn: ${set.reason}`)
+    return next(e)
+  })
+
+  on('session.attach', async ($, e, next) => {
+    if (current !== 'off') {
+      await $.theme.set(build(current))
     }
 
     return next(e)
