@@ -109,22 +109,94 @@ for (let i = 0; i < 8; i++) {
   readout += segs
 }
 
-// Gauntlet: four slots that go dark one by one, then all light again.
-let slots = ''
-for (let i = 0; i < 4; i++) {
-  const g = glyph()
-  const path = strokes(g, 22 + i * 52, 20, 1.75)
-  slots += `<g class="s${i}"><path class="halo" d="${path}"/><path class="core" d="${path}"/></g>`
+// Gauntlet: a countdown in a base-6 numeral of our own. Each slot is a digit that ticks
+// down like an odometer: the right one every tick, borrowing from the one to its left.
+// At zero the glyphs blink and the panel swells red-hot, then it starts over.
+// The gauntlet's display, as in the film: each glyph lights some of ten fat bars with
+// pointed ends, laid out in a fixed pattern (a cell about 145 wide by 185 tall):
+// two verticals on top, a long bar out to each side, two diagonals spreading down from
+// the middle, one more diagonal each side below, and a vertical and a bar at the foot.
+const BARS = [
+  [65, 2, 65, 50],
+  [0, 35, 50, 35],
+  [85, 44, 135, 44],
+  [60, 57, 25, 87],
+  [80, 60, 113, 92],
+  [120, 102, 85, 132],
+  [35, 92, 65, 124],
+  [73, 134, 73, 182],
+  [95, 150, 143, 150],
+  [40, 2, 40, 42],
+]
+// A bar: a long hexagon from one end point to the other.
+const bar = ([a, b, c, d], x, y, k) => {
+  const len = Math.hypot(c - a, d - b)
+  const tx = (c - a) / len
+  const ty = (d - b) / len
+  const w = 8.5
+  const pts = [
+    [a, b],
+    [a + tx * w - ty * w, b + ty * w + tx * w],
+    [c - tx * w - ty * w, d - ty * w + tx * w],
+    [c, d],
+    [c - tx * w + ty * w, d - ty * w - tx * w],
+    [a + tx * w + ty * w, b + ty * w - tx * w],
+  ]
+  return 'M' + pts.map(([px, py]) => `${(x + px * k).toFixed(1)} ${(y + py * k).toFixed(1)}`).join('L') + 'Z'
 }
+const bars = (list, x, y, k) => list.map(i => bar(BARS[i], x, y, k)).join('')
+// Six numerals, fewest bars for the lowest. Five, four, three and one are the film's.
+const DIGITS = [[7], [0, 6], [0, 3, 4, 7], [9, 3, 4, 5, 8], [0, 1, 2, 4, 6, 7], [0, 1, 2, 3, 4, 5, 7]]
+const BASE = 6
+const TICK = 0.6
+const START = 1 * 216 + 2 * 36 + 3 * 6 + 4
+const HOLD = 6
+const TICKS = START + 1 + HOLD
+export const COUNTDOWN_SECONDS = TICKS * TICK
+const pct = i => ((i / TICKS) * 100).toFixed(3)
+const digitAt = (i, slot) => {
+  const v = i <= START ? START - i : 0
+  return Math.floor(v / BASE ** (3 - slot)) % BASE
+}
+
+let slots = ''
+let frames = ''
+for (let slot = 0; slot < 4; slot++) {
+  const x = 20 + slot * 52
+  slots += `<rect x="${x}" y="14" width="48" height="64" rx="3" fill="#120305" stroke="#2c0c10" stroke-width="1.5"/>`
+  for (let g = 0; g < BASE; g++) {
+    const name = `d${slot}${g}`
+    let stops = ''
+    let last = -1
+    for (let i = 0; i < TICKS; i++) {
+      const lit = digitAt(i, slot) === g && (i <= START || (i - START) % 2 === 1) ? 1 : 0
+      if (lit !== last) {
+        stops += `${pct(i)}%{opacity:${lit}}`
+        last = lit
+      }
+    }
+    stops += `100%{opacity:${last}}`
+    frames += `@keyframes ${name}{${stops}}`
+    const path = bars(DIGITS[g], x + 2.3, 18.5, 0.3)
+    const rest = digitAt(0, slot) === g ? ' on' : ''
+    slots += `<g class="dg${rest}" style="animation-name:${name}"><path class="bh" d="${path}"/><path class="bc" d="${path}"/></g>`
+  }
+}
+const BOOM_AT = pct(START + 1)
+const BOOM_PEAK = pct(START + 3.5)
+frames += `@keyframes boom{0%,${BOOM_AT}%{opacity:0}${BOOM_PEAK}%{opacity:1}100%{opacity:0}}`
+frames += `@keyframes drain{0%{transform:scaleX(1)}${pct(START)}%{transform:scaleX(0)}100%{transform:scaleX(0)}}`
 // The scene fills the window by cropping, the top and bottom off a wide one and the
 // sides off a tall one, so the size rules in the style move the panel back into the
 // corner that shows, below the window's own buttons.
 const GAUNTLET = `<g transform="translate(1330 78)"><g class="gnt">
 <path d="M0 10L14 0H228L240 12V96L226 108H12L0 96Z" fill="#0b0816" stroke="#3a2a5a" stroke-width="2"/>
 <path d="M8 16L18 8H222L232 18V92L222 100H18L8 90Z" fill="#06040c"/>
+<g opacity="0.55"><path class="boom" d="M8 16L18 8H222L232 18V92L222 100H18L8 90Z" fill="url(#blast)"/></g>
 ${slots}
 <path d="M18 86H222" stroke="#3a1410" stroke-width="3"/>
 <rect class="bar" x="18" y="84.5" width="204" height="3" fill="#ff2a1a"/>
+<circle class="boom" cx="120" cy="54" r="700" fill="url(#flare)"/>
 </g></g>`
 
 // Warm bodies hiding in the foliage: thermal blobs, white-hot core to red edge.
@@ -139,6 +211,8 @@ export const PREDATOR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16
 <radialGradient id="limb" cx="0.5" cy="0.2" r="0.9"><stop offset="0" stop-color="#ff8a1a"/><stop offset="0.5" stop-color="#d0201e"/><stop offset="1" stop-color="#5a0c5a"/></radialGradient>
 <radialGradient id="face" cx="0.5" cy="0.55" r="0.6"><stop offset="0" stop-color="#fffbe0"/><stop offset="0.35" stop-color="#ffe14a"/><stop offset="0.7" stop-color="#ff7a10"/><stop offset="1" stop-color="#c0182a"/></radialGradient>
 <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07050e" stop-opacity="0"/><stop offset="1" stop-color="#1e0a30"/></linearGradient>
+<radialGradient id="blast"><stop offset="0" stop-color="#fff2b0"/><stop offset="0.4" stop-color="#ff7a1a"/><stop offset="1" stop-color="#c4102a"/></radialGradient>
+<radialGradient id="flare"><stop offset="0" stop-color="#ff5a1a" stop-opacity="0.32"/><stop offset="0.35" stop-color="#ff2a1a" stop-opacity="0.12"/><stop offset="1" stop-color="#ff2a1a" stop-opacity="0"/></radialGradient>
 <radialGradient id="mild"><stop offset="0" stop-color="#ff8a1a"/><stop offset="0.45" stop-color="#c4102a" stop-opacity="0.8"/><stop offset="1" stop-color="#3a0a5a" stop-opacity="0"/></radialGradient>
 </defs>
 <style>
@@ -152,14 +226,12 @@ export const PREDATOR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16
 .core{fill:none;stroke:#ff3a22;stroke-width:4.6;stroke-linecap:round}
 .rs{opacity:0.85;animation:build 16s linear infinite}
 @keyframes build{0%{opacity:0}4%{opacity:0.85}70%{opacity:0.85}85%{opacity:0}100%{opacity:0}}
-.s0{animation:s0 40s linear infinite}
-.s1{animation:s1 40s linear infinite}
-.s2{animation:s2 40s linear infinite}
-.s3{animation:s3 40s linear infinite}
-@keyframes s0{0%,18%{opacity:1}21%,94%{opacity:0.1}97%,100%{opacity:1}}
-@keyframes s1{0%,38%{opacity:1}41%,94%{opacity:0.1}97%,100%{opacity:1}}
-@keyframes s2{0%,58%{opacity:1}61%,94%{opacity:0.1}97%,100%{opacity:1}}
-@keyframes s3{0%,78%{opacity:1}81%,94%{opacity:0.1}97%,100%{opacity:1}}
+.bh{fill:none;stroke:#ff2a1a;stroke-width:5;stroke-linejoin:round;opacity:0.22}
+.bc{fill:#ff2e1e}
+.dg{opacity:0;animation-duration:${COUNTDOWN_SECONDS}s;animation-iteration-count:infinite;animation-timing-function:step-end}
+.on{opacity:1}
+.boom{opacity:0;pointer-events:none;animation:boom ${COUNTDOWN_SECONDS}s ease-in-out infinite}
+${frames}
 @media (min-aspect-ratio: 16/9){.gnt{transform:translate(0px,50px)}}
 @media (min-aspect-ratio: 2/1){.gnt{transform:translate(0px,117px)}}
 @media (min-aspect-ratio: 12/5){.gnt{transform:translate(0px,183px)}}
@@ -168,8 +240,7 @@ export const PREDATOR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16
 @media (max-aspect-ratio: 3/2){.gnt{transform:translate(-260px,0px)}.pl{transform:translate(260px,0px)}.pr{transform:translate(-130px,0px)}}
 @media (max-aspect-ratio: 6/5){.gnt{transform:translate(-395px,0px)}.pl{transform:translate(395px,0px)}.pr{transform:translate(-200px,0px)}}
 @media (max-aspect-ratio: 9/10){.gnt{transform:translate(-530px,0px)}.pl{transform:translate(530px,0px)}.pr{transform:translate(-330px,0px)}}
-.bar{transform-box:fill-box;transform-origin:left;animation:drain 40s linear infinite}
-@keyframes drain{0%{transform:scaleX(1)}94%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+.bar{transform-box:fill-box;transform-origin:left;animation:drain ${COUNTDOWN_SECONDS}s linear infinite}
 </style>
 <rect width="1600" height="900" fill="url(#sky)"/>
 <rect y="560" width="1600" height="340" fill="url(#ground)"/>
