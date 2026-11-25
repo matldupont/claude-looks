@@ -1,0 +1,119 @@
+// Digital rain on the GPU: a grid of cells, each column a falling head with a fading
+// trail, each cell a procedurally drawn katakana-like glyph that keeps changing.
+import {
+  abs,
+  clamp,
+  exp,
+  floor,
+  fract,
+  int,
+  length,
+  max,
+  mod,
+  picture,
+  pointers,
+  shader,
+  size,
+  smoothstep,
+  step,
+  time,
+  unsigned,
+  vec3,
+  vec4,
+} from 'claude-code/shader'
+
+const CW = 11 // cell width, points
+const CH = 16 // cell height, points
+
+const hash = (n: int): number => {
+  let x = n
+  x = int(x ^ (x >>> 16))
+  x = int(x * 73244475)
+  x = int(x ^ (x >>> 16))
+  x = int(x * 73244475)
+  x = int(x ^ (x >>> 16))
+
+  return unsigned(x) / 4294967296
+}
+
+const rain = picture(p => {
+  const fy = size.y - p.point.y
+  const col = floor(p.point.x / CW)
+  const row = floor(fy / CH)
+  const c = int(col)
+  const rows = size.y / CH
+
+  // Per column: speed, trail length and where its head is now.
+  const speed = 8 + 14 * hash(c)
+  const trail = 14 + 32 * hash(int(c + 1013))
+  const period = rows + trail + 4 + 14 * hash(int(c + 7919))
+  const head = mod(time * speed + hash(int(c + 31337)) * 1000, period)
+  const d = head - row
+
+  // Each cell swaps its glyph every few tenths of a second.
+  const r = int(row)
+  const rate = 0.25 + 0.7 * hash(int(c * 7919 + r * 104729))
+  const k = int(floor(time * rate + hash(int(c * 31 + r * 17)) * 10))
+  const gid = int(c * 7919 + r * 104729 + k * 613)
+
+  // A glyph is a few strokes: a bar across, a bar down, a slash, a second bar.
+  const u0 = fract(p.point.x / CW)
+  const v = fract(fy / CH)
+  const gu = 1 - (u0 - 0.14) / 0.72 // mirrored, as in the film
+  const gv = (v - 0.12) / 0.76
+  const inside = step(0, gu) * step(gu, 1) * step(0, gv) * step(gv, 1)
+  const w = 0.13
+  const g1 = hash(gid)
+  const g2 = hash(int(gid + 1))
+  const g3 = hash(int(gid + 2))
+  const g4 = hash(int(gid + 3))
+  const g5 = hash(int(gid + 4))
+  const g6 = hash(int(gid + 5))
+  const g7 = hash(int(gid + 6))
+  const g8 = hash(int(gid + 7))
+  const g9 = hash(int(gid + 8))
+
+  const bar1 = step(abs(gv - (0.1 + 0.8 * g1)), w) * step(0.35 * g2, gu) * step(gu, 0.65 + 0.35 * g3)
+  const bar2 = step(abs(gu - (0.2 + 0.6 * g4)), w) * step(0.3 * g5, gv) * step(gv, 0.7 + 0.3 * g6)
+  const slant = g8 > 0.5 ? gv : 1 - gv
+  const bar3 = step(0.45, g7) * step(abs(gu - slant), w * 1.3)
+  const bar4 = step(0.6, g9) * step(abs(gv - (0.1 + 0.8 * g3)), w) * step(0.2, gu) * step(gu, 0.8)
+  const ink = max(max(bar1, bar2), max(bar3, bar4)) * inside
+
+  // Lit only in the trail behind the head; the head cell itself is near white.
+  const lit = step(0, d) * step(d, trail)
+  const fade = exp(-d * (3.2 / trail))
+  const isHead = step(d, 1) * step(0, d)
+  let glow = clamp(fade, 0, 1) * lit
+  let head1 = isHead
+  let on = lit
+
+  // A press drops a bright burst of heads down the columns around the pointer.
+  for (const q of pointers) {
+    if (q.down > 0) {
+      const pcol = floor(q.at.x / CW)
+      const prow = floor((size.y - q.at.y) / CH)
+      const across = abs(col - pcol)
+      const dq = prow + q.age * 48 - row
+      const inBurst = step(0, dq) * step(dq, 26) * step(across, 6)
+      const bw = exp(-dq * 0.12) * exp(-across * 0.4) * inBurst
+      glow = max(glow, bw)
+      head1 = max(head1, step(dq, 1) * inBurst * exp(-across * 0.4))
+      on = max(on, inBurst)
+    }
+  }
+  const rgb = vec3(0.05, 1, 0.4) * glow + vec3(0.8, 1, 0.85) * head1
+  const a = ink * on
+
+  // A faint dim ghost of the grid in the dark, so the field never looks empty.
+  const ghost = ink * 0.05 * step(0.8, hash(int(gid + 99)))
+
+  const around = length(p.uv - 0.5)
+  const vig = 1 - 0.7 * smoothstep(0.35, 0.85, around)
+  const bg = vec3(0, 0.04, 0.016)
+  const lum = (rgb * a + vec3(0, 1, 0.4) * ghost) * vig
+
+  return vec4(bg * vig + lum, 1)
+})
+
+export default shader({ fps: 30, passes: [rain] })

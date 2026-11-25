@@ -1,0 +1,11 @@
+{
+  "name": "claude-looks",
+  "owner": { "name": "claude-looks" },
+  "plugins": [
+    {
+      "name": "looks",
+      "source": "./",
+      "description": "Switchable Claude desktop themes with /look: animated synthwave, rainy Tokyo, GPU Matrix rain, plus midnight, forest, ember and paper"
+    }
+  ]
+}
