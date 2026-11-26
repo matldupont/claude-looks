@@ -21,7 +21,23 @@ import {
   unsigned,
   vec3,
   vec4,
+  buffer,
+  dt,
+  values,
+  type Buffer,
 } from 'claude-code/shader'
+
+// Set by the mod: surge is 1 while the person types, wave goes to 1 for a moment on send.
+const fx = values({ surge: [0, 1], wave: [0, 1] })
+
+// One texel of memory: x = seconds since the last send (wave), y = wave last frame,
+// z = extra rain time piled up while typing (surge), so the rain speeds up without a jump.
+const clock: Buffer = buffer({ size: [1, 1], float: 32, filter: 'nearest' }, () => {
+  const prev = clock.at(0)
+  const rose = step(0.5, fx.wave) * step(prev.y, 0.5)
+  const since = (prev.x + dt) * (1 - rose)
+  return vec4(clamp(since, 0, 60), fx.wave, mod(prev.z + dt * fx.surge * 1.6, 3600), 1)
+})
 
 const CW = 11 // cell width, points
 const CH = 16 // cell height, points
@@ -42,6 +58,8 @@ const mix = (n: int): int => {
 const unit = (v: int): number => unsigned(v) * 0.003921569
 
 const rain = picture(p => {
+  const mem = clock.at(0)
+  const t = time + mem.z
   const fy = size.y - p.point.y
   const col = floor(p.point.x / CW)
   const row = floor(fy / CH)
@@ -56,7 +74,7 @@ const rain = picture(p => {
   const period = rows + trail + 4 + 14 * unit(int((hc >>> 16) & 255))
   // Rain is already falling at random heights; the whole field fades in from nothing
   // as the shader becomes ready (`time` counts from then), so there is no wave.
-  const head = mod(time * speed + unit(int((hc >>> 24) & 255)) * 1000, period)
+  const head = mod(t * speed + unit(int((hc >>> 24) & 255)) * 1000, period)
   const d = head - row
 
   // Each cell swaps its glyph every few seconds.
@@ -112,6 +130,17 @@ const rain = picture(p => {
       on = max(on, inBurst)
     }
   }
+  // Surge: brighter trails and heads while typing.
+  glow = glow * (1 + 0.7 * fx.surge)
+
+  // Wave: one bright band sweeps down the screen after a send, gone within a second.
+  const since = mem.x
+  const band = abs(1 - p.uv.y - since * 1.4)
+  const waveOn = step(since, 0.75) * step(band, 0.05) * (1 - since / 0.75)
+  glow = max(glow, waveOn)
+  head1 = max(head1, waveOn * step(band, 0.012))
+  on = max(on, waveOn * step(0.3, unit(int((hr >>> 24) & 255))))
+
   const rgb = vec3(0.05, 1, 0.4) * glow + vec3(0.8, 1, 0.85) * head1
   const a = ink * on
 
@@ -126,4 +155,4 @@ const rain = picture(p => {
   return vec4(bg * vig + lum, 1)
 })
 
-export default shader({ fps: 30, passes: [rain] })
+export default shader({ fps: 30, passes: [clock, rain] })

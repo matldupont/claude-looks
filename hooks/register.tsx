@@ -1,3 +1,4 @@
+import { atom, read, update } from 'claude-code'
 import type { Register, ThemeSetArgs } from 'claude-code'
 
 import { makeColors } from './make-colors.js'
@@ -8,6 +9,11 @@ import { HIVE } from './hive.js'
 import { PREDATOR } from './predator.js'
 
 const NAMES = Object.keys(PALETTES)
+
+// Matrix answers typing: the rain surges while the person types and a bright band
+// sweeps down on send. Only state changes reach the shader, never one per key.
+const typing = atom({ plugin: 'looks', key: 'typing' } as const, 0)
+const sent = atom({ plugin: 'looks', key: 'sent' } as const, 0)
 
 const build = (name: string): ThemeSetArgs => {
   const p = PALETTES[name]!
@@ -109,6 +115,39 @@ export const register: Register = on => {
     return next(e)
   })
 
+  let idle: { cancel: () => void } | undefined
+  let settle: { cancel: () => void } | undefined
+  let isTyping = false
+
+  on('prompt.edit', ($, e, next) => {
+    if (current === 'matrix') {
+      if (!isTyping) {
+        isTyping = true
+        void update($, typing, () => 1)
+      }
+      idle?.cancel()
+      idle = $.clock.after(600, () => {
+        isTyping = false
+        void update($, typing, () => 0)
+      })
+    }
+
+    return next(e)
+  })
+
+  on('prompt.submit', ($, e, next) => {
+    if (current === 'matrix') {
+      idle?.cancel()
+      isTyping = false
+      void update($, typing, () => 0)
+      void update($, sent, () => 1)
+      settle?.cancel()
+      settle = $.clock.after(1200, () => void update($, sent, () => 0))
+    }
+
+    return next(e)
+  }).catch(() => undefined)
+
   on('command.run', { command: 'look' }, async ($, e) => {
     const name = e.args.trim().toLowerCase()
 
@@ -137,7 +176,7 @@ export const register: Register = on => {
     return { text: set.isDrawn ? `Theme: ${name}` : `Not drawn: ${set.reason}` }
   })
 
-  on('ui.render', { component: 'Backdrop' }, ($, e, next) => {
+  on('ui.render', { component: 'Backdrop' }, async ($, e, next) => {
     if (e.surface !== 'desktop' && e.surface !== 'mobile') {
       return next(e)
     }
@@ -150,8 +189,10 @@ export const register: Register = on => {
     const { Shader, Svg } = $.ui.resolve(e)
 
     if (e.props.scene === 'matrix') {
+      const values = { surge: await read($, typing), wave: await read($, sent) }
+
       return (
-        <Shader module="./matrix.shader.ts">
+        <Shader module="./matrix.shader.ts" values={values}>
           <Svg source={scene.source} alt={scene.alt} />
         </Shader>
       )
