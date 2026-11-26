@@ -58,6 +58,81 @@ export const PALETTES = {
       codeTheme: { dark: 'nord' },
     },
   },
+  hive: {
+    scene: 'hive',
+    glass: { blur: 8, tint: '#06080a', opacity: 0.55 },
+    style: {
+      // The person's words on a riveted steel plate with a hazard-striped corner.
+      UserMessage: {
+        color: '#eef1f2',
+        backgroundColor: '#141a1f',
+        paddingX: 14,
+        paddingY: 10,
+        fill: {
+          vector: {
+            viewBox: 96,
+            slice: 20,
+            paths: [
+              { d: 'M0 0H96V96H0Z', color: '#141a1f' },
+              { d: 'M0.5 0.5H95.5V95.5H0.5Z', strokeWidth: 1, color: '#34404a' },
+              { d: 'M1 1H6V4L1 9ZM1 12L6 7V12L1 17Z', color: '#c88a2c' },
+              { d: 'M88.4 6a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0ZM88.4 90a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0Z', color: '#5a6873' },
+            ],
+          },
+        },
+      },
+      // Claude's on a dark console panel: amber bracket corners and a small sensor mark.
+      AssistantMessage: {
+        color: '#e3e8ea',
+        backgroundColor: '#090d10',
+        paddingTop: 22,
+        paddingX: 14,
+        paddingBottom: 12,
+        fill: {
+          vector: {
+            viewBox: 96,
+            slice: 26,
+            paths: [
+              { d: 'M0 0H96V96H0Z', color: '#090d10' },
+              { d: 'M0.5 0.5H95.5V95.5H0.5Z', strokeWidth: 1, color: '#1c252c' },
+              { d: 'M0.75 14V0.75H14M82 0.75H95.25V14M95.25 82V95.25H82M14 95.25H0.75V82', strokeWidth: 1.5, color: '#f0a43a' },
+              { d: 'M8 11a4 4 0 1 0 8 0a4 4 0 1 0 -8 0', strokeWidth: 1.2, color: '#f0a43a' },
+              { d: 'M10.8 11a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0Z', color: '#f0a43a' },
+            ],
+          },
+        },
+      },
+      ToolUse: { color: '#7cf2a0', fontFamily: ['mono'], backgroundColor: '#04090a', borderColor: '#173a2a', borderWidth: 1, radius: 2, paddingX: 8 },
+    },
+    sound: {
+      ambience: {
+        reverb: 0.35,
+        layers: [
+          // The hull: a low rumble, the engines' hum and the air scrubbers.
+          { wave: 'brown', drone: true, gain: 0.18, filter: { type: 'lowpass', hz: 120 }, tremolo: { hz: 0.07, depth: 0.35 } },
+          { wave: 'sine', drone: true, notes: [43, 86], gain: 0.03, tremolo: { hz: 0.11, depth: 0.25 } },
+          { wave: 'pink', drone: true, gain: 0.045, filter: { type: 'bandpass', hz: 2000, to: 2600 }, tremolo: { hz: 0.25, depth: 0.5 } },
+          // Metal groaning under strain, off to either side now and then.
+          { wave: 'saw', scatter: 0.06, notes: ['B1', 'A1', 'C2'], glide: -5, attack: 1, release: 3, gain: 0.06, pan: -0.4, filter: { type: 'lowpass', hz: 260 } },
+          { wave: 'saw', scatter: 0.04, notes: ['G1', 'A1'], glide: -4, attack: 0.8, release: 2.6, gain: 0.05, pan: 0.5, filter: { type: 'lowpass', hz: 240 } },
+          // Drips, echoing down the deck.
+          { wave: 'sine', scatter: 0.35, notes: ['B6', 'A6', 'D7', 'F#6'], glide: -7, attack: 0.002, release: 0.18, gain: 0.04, pan: -0.3 },
+          { wave: 'sine', scatter: 0.25, notes: ['C7', 'G6', 'E7'], glide: -7, attack: 0.002, release: 0.16, gain: 0.035, pan: 0.45 },
+        ],
+      },
+      cues: {
+        send: { layers: [{ wave: 'square', notes: [1250, 1650], step: 0.06, attack: 0.002, release: 0.04, gain: 0.06, filter: { type: 'bandpass', hz: 1800 } }] },
+        tool: { reverb: 0.5, layers: [{ wave: 'sine', notes: [1180], attack: 0.004, release: 0.9, gain: 0.1 }] },
+        done: { reverb: 0.35, layers: [{ wave: 'triangle', notes: ['D6', 'A5', 'D5'], step: 0.14, release: 0.6, gain: 0.1 }] },
+        error: { layers: [{ wave: 'saw', notes: [420, 310, 420, 310], step: 0.24, attack: 0.01, release: 0.2, gain: 0.06, filter: { type: 'lowpass', hz: 1400 } }] },
+      },
+    },
+    colors: {
+      label: 'Hive',
+      roles: { accent: '#f0a43a', danger: '#ff5a4d', success: '#7cf2a0', warning: '#ffd24a', pro: '#8fb8d8' },
+      dark: dark('#06080a', '#0b0f12', '#10151a', '#131a1f', '#e2e6e8', '#b4bcc2', '#86909a'),
+    },
+  },
   predator: {
     scene: 'predator',
     glass: { blur: 8, tint: '#07050e', opacity: 0.6 },
