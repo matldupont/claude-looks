@@ -13,8 +13,6 @@ import {
   cos,
   dot,
   exp,
-  floor,
-  fract,
   length,
   max,
   min,
@@ -34,34 +32,45 @@ import {
   vec4,
 } from 'claude-code/shader'
 
-// One texel: x, y of the aim in points, and how locked it is (0 to 1).
+// One texel: x, y of the aim in points, how locked it is (0 to 1), and how many
+// seconds since a pointer was last in the window.
 const aim: Buffer = buffer({ size: [1, 1], float: 32, filter: 'nearest' }, p => {
   const last = aim.at(vec2(0, 0))
+  const lost = last.w + dt
 
-  // On its own: drift to a new spot, then hold there, every 11 seconds.
-  const k = floor(time / 11)
-  const hold = smoothstep(0.35, 0.95, fract(time / 11))
-  const ta = vec2(0.5 + 0.34 * sin(k * 2.1), 0.55 + 0.25 * sin(k * 1.3 + 1))
-  const tb = vec2(0.5 + 0.34 * sin(k * 2.1 + 2.1), 0.55 + 0.25 * sin(k * 1.3 + 2.3))
-  let target = mix(ta, tb, hold) * size
-  let still = smoothstep(0.85, 1, hold) + smoothstep(0.2, 0, fract(time / 11))
-  let rate = 1.4
+  // On its own the aim searches outward from wherever it is, so it sets off from
+  // the last spot the pointer held: it keeps the lock a moment, then moves in
+  // bursts along a slowly turning heading, pausing between them, and steers
+  // back in from the edges.
+  const ramp = smoothstep(2.5, 4.5, lost)
+  const go = smoothstep(-0.3, 0.5, sin(time * 0.7 + 1)) * ramp
+  const ang = sin(time * 0.23) * 2.6 + sin(time * 0.11 + 1.7) * 2.1
+  const speed = size.y * 0.14 * go
+  const offX = last.x / size.x - 0.5
+  const offY = last.y / size.y - 0.5
+  const edge = smoothstep(0.3, 0.44, max(abs(offX), abs(offY)))
+  const step = vec2(cos(ang) * speed - offX * size.x * 0.9 * edge, sin(ang) * speed - offY * size.y * 0.9 * edge)
+  let pos = vec2(last.x + step.x * dt, last.y + step.y * dt)
+  let still = 1 - go
+  let seen = lost
 
-  // A pointer in the window takes over; the newest one wins.
+  // A pointer in the window takes over, eased so the dots trail it; the newest
+  // one wins. A resting pointer can drop out of the list: the search above then
+  // starts from where it was.
   for (const q of pointers) {
     if (q.gone == 0) {
-      target = q.at
-      const moved = length(q.at - q.was)
-      still = smoothstep(1.5, 0, moved)
-      rate = 3.2
+      pos = mix(last.xy, q.at, 1 - exp(-dt * 3.2))
+      still = smoothstep(1.5, 0, length(q.at - q.was))
+      seen = 0
     }
   }
 
+  // The first frame starts near the middle.
   const start = time < 0.1 ? 1 : 0
-  const pos = mix(last.xy, target, start + (1 - start) * (1 - exp(-dt * rate)))
+  pos = mix(pos, vec2(size.x * 0.5, size.y * 0.55), start)
   const lock = mix(last.z, still, 1 - exp(-dt * 2.5))
 
-  return vec4(pos, lock, 1)
+  return vec4(pos, lock, seen)
 })
 
 // Distance to a segment, for the walker's limbs.
@@ -84,7 +93,7 @@ const view = picture(p => {
   let uv = p.uv + vec2(haze, 0)
 
   // The cloaked hunter: crosses in 26 seconds, every 55. Seen side on, walking right:
-  // hunched, head thrust forward, knees and elbows bent, dreadlocks hanging back.
+  // hunched, head thrust forward, knees and elbows bent.
   // The stride is tied to how far it has gone, so planted feet don't slide.
   const cyc = mod(time + 52, 55)
   const walking = smoothstep(0, 1.5, cyc) * smoothstep(26, 24.5, cyc)
@@ -138,12 +147,6 @@ const view = picture(p => {
   d = smin(d, arm(q, ph))
   d = min(d, leg(q, ph + PI))
   d = min(d, arm(q, ph + PI))
-  for (const i of [0, 1, 2]) {
-    const top = vec2(head.x - h * (0.025 + 0.01 * i), head.y + h * (0.025 - 0.012 * i))
-    const sway = sin(ph * 0.5 + i) * h * 0.01
-    const tip = vec2(top.x - h * 0.04 + sway, top.y - h * (0.12 + 0.015 * i))
-    d = min(d, seg(q, top, tip) - h * 0.008)
-  }
 
   const w = h * 0.04
   const edge = smoothstep(w, 0, abs(d)) * walking
