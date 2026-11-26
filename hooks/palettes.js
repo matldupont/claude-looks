@@ -49,12 +49,45 @@ export const PALETTES = {
   },
   matrix: {
     scene: 'matrix',
-    glass: { blur: 6, tint: '#000a04', opacity: 0.72 },
-    style: { Text: { fontFamily: ['mono'] }, ToolUse: { fontFamily: ['mono'] } },
+    glass: { blur: 8, tint: '#000a04', opacity: 0.6 },
+    style: {
+      // Prose in the app's own sans and a pale, near-neutral green-white, so the bright
+      // green is left for headings, links, frames and tool calls.
+      Heading: { color: '#00ff66', fontFamily: ['mono'], fontWeight: 'bold', letterSpacing: 0.5 },
+      // The person: a lit terminal cell with a bright green edge.
+      UserMessage: {
+        color: '#eafff0',
+        backgroundColor: '#06240f',
+        fill: { gradient: { shape: 'radial', stops: ['#0b3a19', '#062a11', '#03170a'] } },
+        borderColor: '#00ff66',
+        borderWidth: 1,
+        radius: 3,
+      },
+      // Claude: a dark readout panel with clipped corners, a thin green edge and three falling ticks.
+      AssistantMessage: {
+        color: '#e2efe6',
+        backgroundColor: '#020c06',
+        paddingTop: 20,
+        paddingX: 14,
+        paddingBottom: 12,
+        fill: {
+          vector: {
+            viewBox: 96,
+            slice: 26,
+            paths: [
+              { d: 'M0 6L6 0H96V90L90 96H0Z', color: '#020c06' },
+              { d: 'M0.5 6.5L6.5 0.5H95.5V89.5L89.5 95.5H0.5Z', strokeWidth: 1, color: '#145a2a' },
+              { d: 'M9 6H11V12H9ZM13 8H15V16H13ZM17 5H19V10H17Z', color: '#00ff66' },
+            ],
+          },
+        },
+      },
+      ToolUse: { color: '#7dffa8', fontFamily: ['mono'], backgroundColor: '#020a05', borderColor: '#124a22', borderWidth: 1, radius: 2, paddingX: 8 },
+    },
     colors: {
       label: 'Matrix',
       roles: { accent: '#00ff66', danger: '#ff4d4d', success: '#39ff88', warning: '#d4ff3a', pro: '#5ef0d0' },
-      dark: dark('#000a04', '#041409', '#07200f', '#0a2712', '#d2ffe0', '#8ee8aa', '#5fbf80'),
+      dark: dark('#000a04', '#041409', '#07200f', '#0a2712', '#e2efe6', '#a9c7b3', '#7c9e87'),
       codeTheme: { dark: 'nord' },
     },
   },
