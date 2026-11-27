@@ -75,7 +75,6 @@ const SYNTHWAVE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900
 
 const SCENES: Record<string, { source: string; alt: string }> = {
   synthwave: { source: SYNTHWAVE, alt: 'A synthwave sun over a neon grid' },
-  matrix: { source: MATRIX, alt: 'Green digital rain falling on black' },
   tokyo: { source: TOKYO, alt: 'Rain falling on a neon-lit Tokyo street at night' },
   hive: { source: HIVE, alt: 'A ship’s service corridor overgrown by ribbed, wet growth, with cold light at the far end' },
   predator: { source: PREDATOR, alt: 'A night jungle in thermal vision, with a hunter’s glyph readout and wrist countdown' },
@@ -120,7 +119,7 @@ export const register: Register = on => {
   let isTyping = false
 
   on('prompt.edit', ($, e, next) => {
-    if (current === 'matrix') {
+    if (PALETTES[current]?.rain !== undefined) {
       if (!isTyping) {
         isTyping = true
         void update($, typing, () => 1)
@@ -136,7 +135,7 @@ export const register: Register = on => {
   })
 
   on('prompt.submit', ($, e, next) => {
-    if (current === 'matrix') {
+    if (PALETTES[current]?.rain !== undefined) {
       idle?.cancel()
       isTyping = false
       void update($, typing, () => 0)
@@ -181,21 +180,25 @@ export const register: Register = on => {
       return next(e)
     }
 
+    const { Shader, Svg } = $.ui.resolve(e)
+    // The Matrix family shares one rain, tinted by the palette's `rain` colour.
+    const rain = PALETTES[e.props.scene]?.rain
+
+    if (rain !== undefined) {
+      const [cr, cg, cb, wr, wg, wb] = rain
+      const values = { surge: await read($, typing), wave: await read($, sent), cr, cg, cb, wr, wg, wb }
+
+      return (
+        <Shader module="./matrix.shader.ts" values={values}>
+          <Svg source={MATRIX} alt="Digital rain falling on black" />
+        </Shader>
+      )
+    }
+
     const scene = SCENES[e.props.scene]
 
     if (scene === undefined) {
       return next(e)
-    }
-    const { Shader, Svg } = $.ui.resolve(e)
-
-    if (e.props.scene === 'matrix') {
-      const values = { surge: await read($, typing), wave: await read($, sent) }
-
-      return (
-        <Shader module="./matrix.shader.ts" values={values}>
-          <Svg source={scene.source} alt={scene.alt} />
-        </Shader>
-      )
     }
 
     if (e.props.scene === 'hive') {

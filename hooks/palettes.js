@@ -13,6 +13,54 @@ const dark = (s0, s1, s2, s3, t1, t2, t3) => ({
   },
 })
 
+// The Matrix family: one GPU rain, tinted per theme. `rain` is the trail and head colour
+// the shader draws ([r, g, b, r, g, b], 0 to 1); the rest frames the chat in the same hue.
+// Prose stays a pale near-neutral so the bright colour is left for headings, links,
+// frames and tool calls.
+const matrix = t => ({
+  scene: t.scene,
+  rain: t.rain,
+  glass: { blur: 8, tint: t.surfaces[0], opacity: 0.6 },
+  style: {
+    Heading: { color: t.accent, fontFamily: ['mono'], fontWeight: 'bold', letterSpacing: 0.5 },
+    // The person: a lit terminal cell with a bright edge.
+    UserMessage: {
+      color: t.bubble.color,
+      backgroundColor: t.bubble.bg,
+      fill: { gradient: { shape: 'radial', stops: t.bubble.stops } },
+      borderColor: t.accent,
+      borderWidth: 1,
+      radius: 3,
+    },
+    // Claude: a dark readout panel with clipped corners, a thin edge and three falling ticks.
+    AssistantMessage: {
+      color: t.text[0],
+      backgroundColor: t.panel.bg,
+      paddingTop: 20,
+      paddingX: 14,
+      paddingBottom: 12,
+      fill: {
+        vector: {
+          viewBox: 96,
+          slice: 26,
+          paths: [
+            { d: 'M0 6L6 0H96V90L90 96H0Z', color: t.panel.bg },
+            { d: 'M0.5 6.5L6.5 0.5H95.5V89.5L89.5 95.5H0.5Z', strokeWidth: 1, color: t.panel.edge },
+            { d: 'M9 6H11V12H9ZM13 8H15V16H13ZM17 5H19V10H17Z', color: t.accent },
+          ],
+        },
+      },
+    },
+    ToolUse: { color: t.tool.color, fontFamily: ['mono'], backgroundColor: t.tool.bg, borderColor: t.tool.border, borderWidth: 1, radius: 2, paddingX: 8 },
+  },
+  colors: {
+    label: t.label,
+    roles: { accent: t.accent, ...t.roles },
+    dark: dark(...t.surfaces, ...t.text),
+    codeTheme: { dark: 'nord' },
+  },
+})
+
 export const PALETTES = {
   synthwave: {
     scene: 'synthwave',
@@ -47,50 +95,43 @@ export const PALETTES = {
       dark: dark('#0a0d1a', '#10142a', '#161b36', '#1a1f3b', '#e8ecff', '#b9c0e6', '#8f98c4'),
     },
   },
-  matrix: {
+  matrix: matrix({
     scene: 'matrix',
-    glass: { blur: 8, tint: '#000a04', opacity: 0.6 },
-    style: {
-      // Prose in the app's own sans and a pale, near-neutral green-white, so the bright
-      // green is left for headings, links, frames and tool calls.
-      Heading: { color: '#00ff66', fontFamily: ['mono'], fontWeight: 'bold', letterSpacing: 0.5 },
-      // The person: a lit terminal cell with a bright green edge.
-      UserMessage: {
-        color: '#eafff0',
-        backgroundColor: '#06240f',
-        fill: { gradient: { shape: 'radial', stops: ['#0b3a19', '#062a11', '#03170a'] } },
-        borderColor: '#00ff66',
-        borderWidth: 1,
-        radius: 3,
-      },
-      // Claude: a dark readout panel with clipped corners, a thin green edge and three falling ticks.
-      AssistantMessage: {
-        color: '#e2efe6',
-        backgroundColor: '#020c06',
-        paddingTop: 20,
-        paddingX: 14,
-        paddingBottom: 12,
-        fill: {
-          vector: {
-            viewBox: 96,
-            slice: 26,
-            paths: [
-              { d: 'M0 6L6 0H96V90L90 96H0Z', color: '#020c06' },
-              { d: 'M0.5 6.5L6.5 0.5H95.5V89.5L89.5 95.5H0.5Z', strokeWidth: 1, color: '#145a2a' },
-              { d: 'M9 6H11V12H9ZM13 8H15V16H13ZM17 5H19V10H17Z', color: '#00ff66' },
-            ],
-          },
-        },
-      },
-      ToolUse: { color: '#7dffa8', fontFamily: ['mono'], backgroundColor: '#020a05', borderColor: '#124a22', borderWidth: 1, radius: 2, paddingX: 8 },
-    },
-    colors: {
-      label: 'Matrix',
-      roles: { accent: '#00ff66', danger: '#ff4d4d', success: '#39ff88', warning: '#d4ff3a', pro: '#5ef0d0' },
-      dark: dark('#000a04', '#041409', '#07200f', '#0a2712', '#e2efe6', '#a9c7b3', '#7c9e87'),
-      codeTheme: { dark: 'nord' },
-    },
-  },
+    label: 'Matrix',
+    rain: [0.05, 1, 0.4, 0.8, 1, 0.85],
+    accent: '#00ff66',
+    roles: { danger: '#ff4d4d', success: '#39ff88', warning: '#d4ff3a', pro: '#5ef0d0' },
+    surfaces: ['#000a04', '#041409', '#07200f', '#0a2712'],
+    text: ['#e2efe6', '#a9c7b3', '#7c9e87'],
+    bubble: { color: '#eafff0', bg: '#06240f', stops: ['#0b3a19', '#062a11', '#03170a'] },
+    panel: { bg: '#020c06', edge: '#145a2a' },
+    tool: { color: '#7dffa8', bg: '#020a05', border: '#124a22' },
+  }),
+  'matrix-blue': matrix({
+    scene: 'matrix-blue',
+    label: 'Matrix Blue',
+    rain: [0.08, 0.6, 1, 0.82, 0.93, 1],
+    accent: '#33bbff',
+    roles: { danger: '#ff4d6a', success: '#39ff88', warning: '#ffd23a', pro: '#8f9bff' },
+    surfaces: ['#00060c', '#03101c', '#061a2b', '#082036'],
+    text: ['#e2ecf5', '#a9bccc', '#7c93a8'],
+    bubble: { color: '#eaf6ff', bg: '#061c30', stops: ['#0b2e4a', '#06213a', '#031322'] },
+    panel: { bg: '#02080e', edge: '#14456e' },
+    tool: { color: '#8fd4ff', bg: '#02070c', border: '#123c5e' },
+  }),
+  'matrix-red': matrix({
+    scene: 'matrix-red',
+    label: 'Matrix Red',
+    rain: [1, 0.1, 0.14, 1, 0.86, 0.84],
+    accent: '#ff3347',
+    // Danger turns orange here, so an error still stands out from the theme's own red.
+    roles: { danger: '#ff7a3d', success: '#5fe08a', warning: '#ffc94a', pro: '#ff7ad1' },
+    surfaces: ['#0c0002', '#1a0306', '#2a060b', '#36080f'],
+    text: ['#f5e4e5', '#ccaaae', '#a88086'],
+    bubble: { color: '#ffecee', bg: '#300610', stops: ['#4a0b16', '#3a0610', '#22030a'] },
+    panel: { bg: '#0e0204', edge: '#6e1420' },
+    tool: { color: '#ff9aa4', bg: '#0c0203', border: '#5e1220' },
+  }),
   hive: {
     scene: 'hive',
     glass: { blur: 8, tint: '#06080a', opacity: 0.55 },

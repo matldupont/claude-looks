@@ -28,7 +28,8 @@ import {
 } from 'claude-code/shader'
 
 // Set by the mod: surge is 1 while the person types, wave goes to 1 for a moment on send.
-const fx = values({ surge: [0, 1], wave: [0, 1] })
+// The rain's colour, from the theme: the trail (cr, cg, cb) and the head (wr, wg, wb).
+const fx = values({ surge: [0, 1], wave: [0, 1], cr: [0, 1], cg: [0, 1], cb: [0, 1], wr: [0, 1], wg: [0, 1], wb: [0, 1] })
 
 // One texel of memory: x = seconds since the last send (wave), y = wave last frame,
 // z = extra rain time piled up while typing (surge), so the rain speeds up without a jump.
@@ -141,7 +142,8 @@ const rain = picture(p => {
   head1 = max(head1, waveOn * step(band, 0.012))
   on = max(on, waveOn * step(0.3, unit(int((hr >>> 24) & 255))))
 
-  const rgb = vec3(0.05, 1, 0.4) * glow + vec3(0.8, 1, 0.85) * head1
+  const trailColor = vec3(fx.cr, fx.cg, fx.cb)
+  const rgb = trailColor * glow + vec3(fx.wr, fx.wg, fx.wb) * head1
   const a = ink * on
 
   // A faint dim ghost of the grid in the dark, so the field never looks empty.
@@ -149,8 +151,8 @@ const rain = picture(p => {
 
   const around = length(p.uv - 0.5)
   const vig = 1 - 0.7 * smoothstep(0.35, 0.85, around)
-  const bg = vec3(0, 0.04, 0.016)
-  const lum = (rgb * a + vec3(0, 1, 0.4) * ghost) * vig * smoothstep(0, 0.5, time)
+  const bg = trailColor * 0.04
+  const lum = (rgb * a + trailColor * ghost) * vig * smoothstep(0, 0.5, time)
 
   return vec4(bg * vig + lum, 1)
 })
