@@ -1,6 +1,6 @@
 # looks
 
-A mod for the Claude desktop app that adds switchable themes, some with moving backdrops and sound. Switch with `/look <name>`; `/look` lists them and `/look off` clears the theme. Your choice is remembered across reloads and sessions.
+A mod for the Claude desktop app that adds switchable themes, some with moving backdrops and sound. Switch with `/look <name>`; `/look` lists them and `/look off` clears the theme. Your choice is remembered across reloads and sessions, and each project can have its own (below).
 
 | Theme | What it is |
 | --- | --- |
@@ -15,6 +15,22 @@ A mod for the Claude desktop app that adds switchable themes, some with moving b
 | `paper` | Warm paper in light mode, with a dark variant |
 
 Sound (tokyo, predator, hive) plays only after you press the speaker in the session title bar. Themes draw in the desktop app and the mobile app, not in a terminal. If the `matrix`, `predator` or `hive` shader can't run on your machine, you get a simpler SVG version; `hive` needs a fast GPU. After you switch themes, the backdrop starts following your cursor once you next send a message.
+
+## Per-project themes
+
+Give a project its own theme with `/look project <name>`; `/look project off` keeps that project unthemed, and `/look project clear` drops its entry so it follows your global theme again. `/look <name>` still sets the global theme, and `/look` lists the themes with this project's and the global choice.
+
+The entries live in a plain file, `~/.claude/looks/projects.json`, keyed by the folder name of the project's main checkout, so every worktree of a repo shares one entry:
+
+```json
+{
+  "sidebar": "tokyo",
+  "slipway": "midnight",
+  "scratch": "off"
+}
+```
+
+A project not in the file uses the global theme. A missing file, or one that isn't a JSON object, means the global theme everywhere; `/look project` won't overwrite a broken file. Any session or script can edit the file. Open sessions pick up a change within about five seconds (the mod checks the file's modification time every 5 s), and new sessions open in it.
 
 ## Install
 
